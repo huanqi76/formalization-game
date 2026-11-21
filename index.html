@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Formalization Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: quiet, exact, a referee's reading room
+   IDEA: a proof galley marked up in red pencil; worlds as a printed dependency chart
+   PICTURE: the Lean statement itself; on the map, the world graph
+   COLOUR and TYPE: white, black ink, red pencil, one green for "faithful"; Spectral + JetBrains Mono
+   LAYOUT: one centred column */
+:root,:root[data-theme]{color-scheme:light;--bg:#fff;--ink:#141414;--mute:#707070;--rule:#e3e3e3;--sel:#ffe8a3;--red:#c22f29;--green:#1d7449}
+*{box-sizing:border-box;min-width:0}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Spectral,Georgia,serif;overflow-x:clip}
+button{font:inherit;color:inherit}
+.top{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;justify-content:space-between;max-width:780px;margin:0 auto;padding:24px max(5vw,16px) 0}
+.brand{font-weight:600;font-size:16px;border:0;background:none;padding:6px 0;cursor:pointer}
+.where{display:flex;align-items:center;gap:10px;color:var(--mute);font-size:14px}
+.dots{display:flex;gap:2px;flex-wrap:wrap}
+.dot{width:22px;height:22px;padding:0;border:0;background:none;cursor:pointer;display:grid;place-items:center}
+.dot i{width:8px;height:8px;border-radius:50%;border:1px solid var(--mute);transition:transform .15s}
+.dot.done i{background:var(--ink);border-color:var(--ink)}
+.dot.cur i{border-color:var(--red);transform:scale(1.35)}
+.dot:focus-visible,.brand:focus-visible,.wname:focus-visible,.chip:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+main{max-width:780px;margin:0 auto;padding:clamp(28px,5vw,52px) max(5vw,16px) 72px}
+.intro{color:var(--mute);font-size:14px;margin:0 0 14px}
+blockquote{margin:0 0 20px;font-style:italic;font-size:clamp(20px,3vw,24px);line-height:1.3;text-wrap:balance}
+.codewrap{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:14px 0;overflow-x:auto}
+pre{margin:0;font:13px/2 "JetBrains Mono",ui-monospace,Menlo,monospace;white-space:pre}
+.k{color:var(--mute)}
+.c{cursor:pointer;border-radius:3px;padding:2px 1px}
+.c:hover{background:var(--rule)}
+.c:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+.c.sel{background:var(--sel)}
+.c.miss{color:var(--mute);text-decoration:line-through}
+.bs.hit{color:var(--red);border-radius:999px;box-shadow:0 0 0 1.4px var(--red);padding:3px 4px;animation:ring .35s ease-out}
+.bs.hit .c{background:none}
+@keyframes ring{from{box-shadow:0 0 0 7px transparent}}
+.fs{color:var(--green);font-weight:700;border-bottom:2px solid var(--green)}
+.probe{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;margin:14px 0 0;font-size:14px;color:var(--mute)}
+.chip{min-height:32px;padding:0 2px;border:0;border-bottom:1px solid transparent;background:none;cursor:pointer;font:12.5px "JetBrains Mono",ui-monospace,monospace;color:var(--mute)}
+.chip:hover{color:var(--ink)}.chip.on{color:var(--ink);border-bottom-color:var(--ink)}
+.pt{border-collapse:collapse;margin:12px 0 0;font-size:14px;width:100%}
+.pt td{padding:3px 0;vertical-align:top}.pt td:first-child{color:var(--mute);width:6em}
+.agree{font-size:14px;margin:4px 0 0;color:var(--green)}.agree.no{color:var(--red)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:22px}
+.btn{min-height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--ink);background:none;cursor:pointer;font-size:14px}
+.btn:hover:not(:disabled){background:var(--ink);color:var(--bg)}
+.btn:disabled{opacity:.3;cursor:default}
+.btn:focus-visible,.opt:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.link{min-height:38px;border:0;background:none;color:var(--mute);text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:14px;padding:0 6px}
+.msg{min-height:1.6em;margin:12px 0 0;font-size:14px}.msg.bad{color:var(--red)}
+.hint{font-style:italic;color:var(--mute);margin:6px 0 0;font-size:14px}
+section{margin-top:26px;padding-top:20px;border-top:1px solid var(--rule)}
+section.rv{border:0;margin-top:40px;padding-top:0}
+h2{font-weight:600;font-size:17px;line-height:1.3;margin:0 0 10px}
+.opts{display:grid;gap:8px}
+.opts{gap:0}
+.opt{text-align:left;min-height:42px;padding:10px 0;border:0;border-top:1px solid var(--rule);background:none;cursor:pointer;font-size:15px;line-height:1.4}
+.opt:last-child{border-bottom:1px solid var(--rule)}
+.opt:hover{text-decoration:underline;text-underline-offset:3px}.opt.wrong{color:var(--mute);text-decoration:line-through;cursor:default}
+.verdict{font-style:italic;font-size:clamp(20px,3vw,24px);line-height:1.2;margin:0 0 10px;color:var(--red)}.verdict.ok{color:var(--green)}
+.rv h2{font-size:15px;margin:0 0 8px}.rv p{margin:0}
+dl{display:grid;grid-template-columns:6em minmax(0,1fr);gap:3px 0;margin:14px 0 22px;font-size:14px}
+dt{color:var(--mute);font-size:14px}dd{margin:0}
+.next{margin-top:18px}
+.map{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));row-gap:44px;padding:8px 0 12px}
+.map svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.map path{fill:none;stroke:#cfcfcf;stroke-width:1}.map path.d{stroke-dasharray:3 4}
+.wn{position:relative;justify-self:center;background:var(--bg);display:grid;justify-items:center;gap:2px;padding:6px 10px;min-width:110px;text-align:center}
+.wname{border:0;background:none;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1.25}
+.wname:hover{text-decoration:underline;text-underline-offset:3px}
+.wn.soon .wname{color:var(--mute);font-style:italic;cursor:default;text-decoration:none}
+.soonl{font-size:12px;color:var(--mute)}
+.wn.all .wname::after{content:" ✓";color:var(--green)}
+.guide{margin-top:48px;padding-top:20px;border-top:1px solid var(--rule)}
+.guide ol{padding-left:1.4em;margin:8px 0 0}.guide li{margin:4px 0}
+.empty{color:var(--mute);font-size:14px}
+@media(max-width:600px){pre{font-size:12px}dl{grid-template-columns:minmax(0,1fr);gap:0}dd{margin-bottom:8px}.wn{min-width:90px;padding:4px}.wname{font-size:14px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="brand" id="brand">Formalization Game</button>
+  <div class="where" id="where"></div>
+</header>
+<main id="main"></main>
+<script>
+{
+const W=[
+ {id:'tut',name:'Tutorial',deps:[]},
+ {id:'num',name:'Number Types',deps:['tut']},
+ {id:'con',name:'Connectives',deps:['tut']},
+ {id:'rng',name:'Ranges & Sets',deps:['tut']},
+ {id:'junk',name:'Junk Values',deps:['num']},
+ {id:'def',name:'Definitions',deps:['con']},
+ {id:'hyp',name:'Hypotheses',deps:['junk'],soon:true},
+ {id:'bench',name:'Benchmark',deps:['def','rng','hyp'],soon:true}];
+const POS={tut:[1,2],num:[2,1],con:[2,2],rng:[2,3],junk:[3,1],def:[3,2],hyp:[4,1],bench:[5,2]};
+const NC='no claim';
+const L=[
+ {w:'tut',lesson:'Domains',rule:'A smaller domain proves less than promised.',
+  intro:'Find where the Lean says something different from the English. Tap it, then mark it. The chips test values on both sides.',
+  en:'For every real number x, x² ≥ 0.',
+  code:'theorem sq_nonneg\' (x : ⟦ℕ⟧) : x ^ 2 ≥ 0 := by\n  sorry',
+  probes:[['x = 3','9 ≥ 0, true','9 ≥ 0, true',1],['x = −3','9 ≥ 0, true','no claim, −3 is not in ℕ',0],['x = 1/2','1/4 ≥ 0, true','no claim, 1/2 is not in ℕ',0]],
+  miss:{'^':'Squaring is right. Which numbers is this about?','≥':'The inequality is right. Try x = −3.'},
+  hint:'Which kind of number is x?',
+  opts:['It only covers natural numbers, so it claims less than the English','x ^ 2 should be x * x','≥ should be >'],
+  why:'The English is about every real number; the Lean only about naturals. Nothing here is false, but the formal statement is weaker, so proving it proves less than was promised.',
+  wit:'At x = −3, only the English makes a claim.',
+  lean:'True, but only because it claims less.',
+  fix:'theorem sq_nonneg\' (x : ⟦ℝ⟧) : x ^ 2 ≥ 0 := by\n  sorry'},
+ {w:'tut',lesson:'Certify',rule:'When every piece matches, certify it.',ok:true,
+  intro:'Sometimes nothing is wrong. Then say so.',
+  en:'For all natural numbers a and b, a + b = b + a.',
+  code:'theorem add_comm\' (a b : ℕ) : a + b = b + a := by\n  sorry',
+  probes:[['a = 2, b = 3','5 = 5, true','5 = 5, true',1],['a = 0, b = 7','7 = 7, true','7 = 7, true',1]],
+  hint:'Check the type, then the operation, then the equation.',
+  why:'ℕ is the natural numbers and + is ordinary addition there. Every piece matches.',
+  wit:'None.',lean:'True, and it is the Natural Number Game’s add_comm.'},
+
+ {w:'num',lesson:'Truncated subtraction',rule:'In ℕ, subtraction stops at 0.',
+  en:'For every integer n, n − 1 < n.',
+  code:'theorem pred_lt (n : ⟦ℕ⟧) : n - 1 < n := by\n  sorry',
+  probes:[['n = 5','4 < 5, true','4 < 5, true',1],['n = 0','−1 < 0, true','0 − 1 = 0, so 0 < 0, false',0],['n = −2','−3 < −2, true','no claim, −2 is not in ℕ',0]],
+  miss:{'<':'The inequality is right. Try n = 0.','-':'Close: subtraction is where it breaks. But why? Look at the type.','1':'The 1 is fine. What does − mean here?'},
+  hint:'What is 0 − 1 in each number system?',
+  opts:['In ℕ, subtraction truncates: 0 − 1 = 0','The inequality should be ≤','It needs a hypothesis 0 < n'],
+  why:'The English ranges over the integers; the code over the naturals. Same symbol “−”, different operation: natural-number subtraction stops at zero.',
+  wit:'At n = 0, the claim becomes 0 < 0.',
+  lean:'False, though it may just look hard to prove.',
+  fix:'theorem pred_lt (n : ⟦ℤ⟧) : n - 1 < n := by\n  sorry'},
+ {w:'num',lesson:'Literals default to ℕ',rule:'Bare numerals default to ℕ, even in exponents.',
+  en:'For every positive real x, √x = x^½.',
+  code:'theorem sqrt_eq_rpow\' (x : ℝ) (hx : 0 < x) :\n    Real.sqrt x = x ^ ⟦(1 / 2)⟧ := by\n  sorry',
+  probes:[['x = 1','1 = 1, true','1 = 1 ^ 0 = 1, true',1],['x = 4','2 = 2, true','2 = 4 ^ 0 = 1, false',0],['x = 9','3 = 3, true','3 = 9 ^ 0 = 1, false',0]],
+  miss:{'Real.sqrt':'√ is fine. Try x = 4.','^':'Power is right. What is the exponent, exactly?','=':'The equation is right. Try x = 4.','<':'The hypothesis is right. Try x = 4.'},
+  hint:'What type does Lean give the bare numbers in the exponent?',
+  opts:['The exponent 1 / 2 is computed in ℕ, where it is 0','Real.sqrt is only defined for perfect squares','The hypothesis should be 0 ≤ x'],
+  why:'Nothing forces the exponent to be real, so Lean reads 1 and 2 as natural numbers. Natural division rounds down: 1 / 2 = 0.',
+  wit:'At x = 4, the right side is 1, not 2.',
+  lean:'False, even though every symbol looks right.',
+  fix:'theorem sqrt_eq_rpow\' (x : ℝ) (hx : 0 < x) :\n    Real.sqrt x = x ^ ⟦((1 : ℝ) / 2)⟧ := by\n  sorry'},
+ {w:'num',lesson:'Faithful',rule:'Check each piece; some statements are fine.',ok:true,
+  en:'Every prime greater than 2 is odd.',
+  code:'theorem odd_of_prime (p : ℕ) (hp : p.Prime) (h : 2 < p) : Odd p := by\n  sorry',
+  probes:[['p = 7','7 is odd, true','Odd 7, true',1],['p = 2','no claim, 2 is not > 2','no claim, 2 < 2 fails',1],['p = 9','no claim, 9 is not prime','no claim, 9 is not prime',1]],
+  hint:'Check each piece against the English, one at a time.',
+  why:'ℕ is the right home for primes, 2 < p matches “greater than 2”, and Odd p is Mathlib’s ∃ k, p = 2k + 1.',
+  wit:'None.',lean:'True, by Mathlib’s Nat.Prime.odd_of_ne_two.'},
+
+ {w:'junk',lesson:'Division by zero is 0',rule:'Lean’s x / 0 is 0. Check what a hypothesis lets in and keeps out.',
+  en:'For every nonzero real x, x / x = 1.',
+  code:'theorem div_self\' (x : ℝ) (hx : ⟦x ≥ 0⟧) : x / x = 1 := by\n  sorry',
+  probes:[['x = 2','2 / 2 = 1, true','2 / 2 = 1, true',1],['x = 0','no claim, x must be nonzero','0 / 0 = 0 ≠ 1, false',0],['x = −1','(−1) / (−1) = 1, true','no claim, hx fails',0]],
+  miss:{'/':'Division is right, but what does Lean do with x / 0?','=':'The equation is right. Which x are allowed?','1':'The 1 is right. Which x are allowed?'},
+  hint:'Which values of x does the English rule out? Which does the Lean?',
+  opts:['The hypothesis allows x = 0, and Lean defines x / 0 = 0','x / x is undefined in Lean, so this won’t compile','Division on ℝ must be written x * x⁻¹'],
+  why:'Lean’s division is total: dividing by zero returns 0 rather than failing. “Nonzero” is exactly the case the English excludes; x ≥ 0 lets it back in, and wrongly shuts out the negatives too.',
+  wit:'At x = 0, Lean gets 0 / 0 = 0, not 1.',
+  lean:'False, but it still compiles.',
+  fix:'theorem div_self\' (x : ℝ) (hx : ⟦x ≠ 0⟧) : x / x = 1 := by\n  sorry'},
+ {w:'junk',lesson:'Junk that can’t get in',rule:'A junk value only matters if a hypothesis lets it through.',ok:true,
+  en:'If x / y = 2, then x = 2y.',
+  code:'theorem of_div_eq_two (x y : ℝ) (h : x / y = 2) : x = 2 * y := by\n  sorry',
+  probes:[['x = 6, y = 3','6 = 6, true','6 = 6, true',1],['x = 5, y = 0','no claim, 5 / 0 is undefined','no claim, 5 / 0 = 0 ≠ 2, so h fails',1]],
+  hint:'Try y = 0. Does anything go wrong?',
+  why:'If y = 0, Lean computes x / 0 = 0 ≠ 2, so h is already false and the junk value can’t sneak in. The English assumes y ≠ 0 implicitly, and so does h.',
+  wit:'None, since y = 0 makes h false.',lean:'True, so not every junk value is a bug.'},
+
+ {w:'con',lesson:'∃ with →',rule:'∃ pairs with ∧; ∀ pairs with →.',
+  en:'There is a prime number greater than 100.',
+  code:'theorem big_prime : ∃ p : ℕ, Nat.Prime p ⟦→⟧ p > 100 := by\n  sorry',
+  probes:[['p = 101','101 is prime and 101 > 100, true','Prime 101 → 101 > 100, true',1],['p = 4','4 is prime and 4 > 100, false','Prime 4 → 4 > 100, true',0]],
+  miss:{'Nat.Prime':'Prime is right. What does the connective after it do?','>':'The bound is right. Try p = 4.','∃':'∃ is right: the English says “there is”.'},
+  hint:'Could p be something that isn’t prime?',
+  opts:['With →, any non-prime p makes it true','p should range over ℤ','> 100 should be ≥ 101'],
+  why:'“There is a p that is prime and large” needs ∧. With →, the statement only asks for some p where “if p is prime then p > 100”, and a non-prime satisfies that vacuously.',
+  wit:'At p = 4, the implication holds because 4 is not prime.',
+  lean:'True, but a proof can pick p = 4 and never find a prime at all.',
+  fix:'theorem big_prime : ∃ p : ℕ, Nat.Prime p ⟦∧⟧ p > 100 := by\n  sorry'},
+ {w:'con',lesson:'Scope of ¬',rule:'Watch where ¬ sits relative to a quantifier.',
+  en:'Not every natural number is even.',
+  code:'theorem not_all_even : ∀ n : ℕ, ⟦¬⟧ Even n := by\n  sorry',
+  probes:[['n = 0','no claim, only some n must be odd','¬ Even 0, false',0],['n = 1','1 is odd, true','¬ Even 1, true',1],['n = 2','no claim, only some n must be odd','¬ Even 2, false',0]],
+  miss:{'Even':'Even is the right predicate. Where does the “not” apply?','∀':'∀ belongs here. What is it negating, though?'},
+  hint:'Read it aloud: “for every n, …”',
+  opts:['¬ sits inside the ∀, so it says no number is even','Even should be Odd','n should range over ℤ'],
+  why:'“Not every n is even” is ¬ (∀ n, Even n). With ¬ inside the quantifier it becomes “every n is not even”, a much stronger claim.',
+  wit:'At n = 0, the Lean fails because 0 is even.',
+  lean:'False, while the English is true.',
+  fix:'theorem not_all_even : ⟦¬ ∀ n : ℕ,⟧ Even n := by\n  sorry'},
+
+ {w:'def',lesson:'Unbounded witnesses',rule:'Bound every witness: ∃ δ > 0.',
+  en:'f is continuous at a.',
+  code:'def ContAt (f : ℝ → ℝ) (a : ℝ) : Prop :=\n  ∀ ε > 0, ⟦∃ δ,⟧ ∀ x, |x - a| < δ → |f x - f a| < ε',
+  probes:[['f x = x','continuous, true','ContAt holds, true',1],['f x = x²','continuous, true','ContAt holds, true',1],['f = step at a','continuous, false','ContAt holds with δ = 0, true',0]],
+  miss:{'<':'Strict or not doesn’t matter here. What about δ itself?','ε':'ε is handled correctly: ∀ ε > 0.','∀':'The outer quantifiers are fine. Look at δ.'},
+  hint:'What happens if δ = 0?',
+  opts:['δ may be ≤ 0, which makes the condition vacuous','|x − a| < δ should be ≤ δ','ε should be existentially quantified'],
+  why:'The textbook definition asks for a positive δ. Without that, δ = 0 makes “|x − a| < δ” impossible, so the implication holds for every x.',
+  wit:'A step function at a satisfies ContAt with δ = 0.',
+  lean:'Provable for every f, so the definition says nothing.',
+  fix:'def ContAt (f : ℝ → ℝ) (a : ℝ) : Prop :=\n  ∀ ε > 0, ⟦∃ δ > 0,⟧ ∀ x, |x - a| < δ → |f x - f a| < ε'},
+ {w:'def',lesson:'Quantifier order',rule:'Quantifier order decides what depends on what.',
+  en:'aₙ converges to 0: for every ε > 0 there is an N with |aₙ| < ε for all n ≥ N.',
+  code:'def ToZero (a : ℕ → ℝ) : Prop :=\n  ⟦∃ N,⟧ ∀ ε > 0, ∀ n ≥ N, |a n| < ε',
+  probes:[['a n = 0','converges to 0, true','ToZero holds, true',1],['a n = 1','converges to 0, false','ToZero fails, false',1],['a n = 1/(n+1)','converges to 0, true','ToZero fails, false',0]],
+  miss:{'∀':'Order matters. Who picks first, ε or N?','≥':'n ≥ N is fine. Look at the order of the quantifiers.','<':'Strict is fine. Look at the order of the quantifiers.'},
+  hint:'Read the quantifiers left to right. Who chooses first?',
+  opts:['N is chosen before ε, so it can’t depend on ε','n ≥ N should be n > N','|a n| should be a n'],
+  why:'In the English, ε comes first and N may depend on it. Here one N must work for every ε at once, which forces |aₙ| below every positive number from N on.',
+  wit:'aₙ = 1/(n+1) converges to 0, but ToZero fails.',
+  lean:'Too strong, since it holds only when a is eventually 0.',
+  fix:'def ToZero (a : ℕ → ℝ) : Prop :=\n  ∀ ε > 0, ⟦∃ N,⟧ ∀ n ≥ N, |a n| < ε'},
+
+ {w:'rng',lesson:'Ranges start at 0',rule:'Finset.range n is {0, …, n − 1}.',
+  en:'The sum of the first n positive integers is n(n + 1)/2.',
+  code:'theorem gauss (n : ℕ) :\n    ∑ i ∈ ⟦Finset.range n⟧, i = n * (n + 1) / 2 := by\n  sorry',
+  probes:[['n = 0','0 = 0, true','0 = 0, true',1],['n = 1','1 = 1, true','0 = 1, false',0],['n = 3','1 + 2 + 3 = 6, true','0 + 1 + 2 = 6, false',0]],
+  miss:{'/':'Red herring: n(n + 1) is always even. What is being summed over?','i':'Summing i is right. Over which i?','∑':'A sum is right. Over which i?'},
+  hint:'Write out the elements of Finset.range 3.',
+  opts:['Finset.range n is {0, …, n − 1}, not {1, …, n}','Natural division makes the right side wrong','The sum needs an explicit type ascription'],
+  why:'Finset.range n starts at 0 and stops before n, so the sum is 0 + 1 + … + (n − 1). The ℕ division is a red herring: n(n + 1) is always even.',
+  wit:'At n = 1, the left side is 0 and the right side is 1.',
+  lean:'False for every n ≥ 1.',
+  fix:'theorem gauss (n : ℕ) :\n    ∑ i ∈ ⟦Finset.Icc 1 n⟧, i = n * (n + 1) / 2 := by\n  sorry'},
+ {w:'rng',lesson:'Shifted, but right',rule:'An index shifted to start at 0 can still be right.',ok:true,
+  en:'The sum of the first n odd numbers is n².',
+  code:'theorem odd_sum (n : ℕ) :\n    ∑ i ∈ Finset.range n, (2 * i + 1) = n ^ 2 := by\n  sorry',
+  probes:[['n = 1','1 = 1, true','1 = 1, true',1],['n = 3','1 + 3 + 5 = 9, true','1 + 3 + 5 = 9, true',1]],
+  hint:'List the terms for n = 3.',
+  why:'Finset.range n gives i = 0, …, n − 1, and 2i + 1 turns those into 1, 3, …, 2n − 1: exactly the first n odd numbers.',
+  wit:'None.',lean:'True, by induction.'}
+];
+const $=s=>document.querySelector(s), esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const KW=new Set(['theorem','def','by','sorry','Prop',':=']);
+const shuf=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(v=>v[1]);
+const inW=id=>L.map((l,j)=>l.w===id?j:-1).filter(j=>j>=0);
+const wOf=id=>W.find(w=>w.id===id);
+let prog={}; try{prog=JSON.parse(localStorage.getItem('fg-progress')||'{}')}catch(e){}
+const save=()=>{try{localStorage.setItem('fg-progress',JSON.stringify(prog))}catch(e){}};
+let i=-1, st={}, mapRO=null;
+
+function render(src,wrap,click){
+  let out='';
+  src.split(/(⟦|⟧)/).forEach(p=>{
+    if(p==='⟦'){out+=`<span class="${wrap}">`;return}
+    if(p==='⟧'){out+='</span>';return}
+    (p.match(/\s+|:=|[()\[\]{},:]|[^\s()\[\]{},:]+/g)||[]).forEach(t=>{
+      if(/^\s+$/.test(t)){out+=t;return}
+      const punct=/^[()\[\]{},:]$/.test(t), kw=KW.has(t);
+      out+=click&&!punct&&!kw?`<span class="c" tabindex="0" role="button">${esc(t)}</span>`:`<span class="${kw?'k':''}">${esc(t)}</span>`;
+    });
+  });
+  return out;
+}
+const dot=j=>`<button class="dot${prog[j]?' done':''}${j===i?' cur':''}" data-j="${j}" aria-label="Level ${j+1}${prog[j]?', done':''}"><i></i></button>`;
+
+function header(){
+  if(i<0){$('#where').innerHTML='';return}
+  const w=wOf(L[i].w);
+  $('#where').innerHTML=`<span>${esc(w.name)}</span><span class="dots">${inW(w.id).map(dot).join('')}</span>`;
+}
+
+function showMap(){
+  i=-1; st={}; header();
+  const solved=L.map((l,j)=>j).filter(j=>prog[j]);
+  $('#main').innerHTML=`<div class="map" id="map"><svg id="edges" aria-hidden="true"></svg>${W.map(w=>{
+      const id=w.id, lv=inW(id), all=lv.length&&lv.every(j=>prog[j]);
+      return `<div class="wn${w.soon?' soon':''}${all?' all':''}" id="w-${id}" style="grid-area:${POS[id][0]}/${POS[id][1]}"><button class="wname" data-w="${id}"${w.soon?' disabled':''}>${esc(w.name)}</button>
+        <div class="dots">${lv.map(dot).join('')}${w.soon?'<span class="soonl">soon</span>':''}</div></div>`}).join('')}</div>
+   <div class="guide"><h2>Field guide <span class="empty">${solved.length} of ${L.length}</span></h2>
+   ${solved.length?`<ol>${solved.map(j=>`<li><b>${esc(L[j].lesson)}.</b> ${esc(L[j].rule)}</li>`).join('')}</ol>`:'<p class="empty">Each level you solve adds the pattern it teaches.</p>'}</div>`;
+  const m=$('#map');
+  const draw=()=>{const r=m.getBoundingClientRect();let d='';
+    W.forEach(w=>w.deps.forEach(dep=>{const a=$('#w-'+dep).getBoundingClientRect(),b=$('#w-'+w.id).getBoundingClientRect();
+      const x1=a.left+a.width/2-r.left,y1=a.bottom-r.top,x2=b.left+b.width/2-r.left,y2=b.top-r.top,ym=(y1+y2)/2;
+      d+=`<path class="${w.soon?'d':''}" d="M${x1},${y1} C${x1},${ym} ${x2},${ym} ${x2},${y2}"/>`}));
+    $('#edges').innerHTML=d};
+  if(mapRO)mapRO.disconnect(); mapRO=new ResizeObserver(draw); mapRO.observe(m);
+  window.scrollTo({top:0});
+}
+
+function level(n){
+  if(mapRO){mapRO.disconnect();mapRO=null}
+  i=n; const l=L[i]; st={sel:null,wrong:0,stage:'locate'};
+  $('#main').innerHTML=`${l.intro?`<p class="intro">${esc(l.intro)}</p>`:''}
+  <blockquote>${esc(l.en)}</blockquote>
+  <div class="codewrap"><pre id="code">${render(l.code,'bs',true)}</pre></div>
+  <div class="probe">Try ${l.probes.map((p,k)=>`<button class="chip" data-p="${k}">${esc(p[0])}</button>`).join('')}</div>
+  <div id="pout" aria-live="polite"></div>
+  <div class="actions" id="acts">
+    <button class="btn primary" id="mark" disabled>Mark as the bug</button>
+    <button class="btn" id="cert">It’s faithful</button>
+    <button class="link" id="hintb">Hint</button>
+  </div>
+  <p class="hint" id="hint" hidden>${esc(l.hint)}</p>
+  <p class="msg" id="msg" aria-live="polite"></p>
+  <div id="after"></div>`;
+  header(); window.scrollTo({top:0});
+}
+
+function probe(k){
+  const p=L[i].probes[k];
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',+c.dataset.p===k));
+  $('#pout').innerHTML=`<table class="pt"><tr><td>English</td><td>${esc(p[1])}</td></tr><tr><td>Lean</td><td>${esc(p[2])}</td></tr></table>
+    <p class="agree${p[3]?'':' no'}">${p[3]?'Agree.':'Disagree.'}</p>`;
+}
+function say(t,bad){const m=$('#msg');m.textContent=t;m.className='msg'+(bad?' bad':'')}
+function settle(){$('#acts').hidden=true;$('#hint').hidden=true;$('#msg').hidden=true}
+
+function located(){
+  const l=L[i]; st.stage='diag';
+  document.querySelectorAll('#code .bs').forEach(b=>b.classList.add('hit'));
+  document.querySelectorAll('#code .sel').forEach(b=>b.classList.remove('sel'));
+  settle();
+  $('#after').innerHTML=`<section class="rv"><div class="opts">${l.opts.map((o,k)=>`<button class="opt" data-k="${k}">${esc(o)}</button>`).join('')}</div>
+    <p class="msg" id="dmsg" aria-live="polite"></p></section>`;
+  const box=$('.opts'); box.append(...shuf([...box.children]));
+}
+
+function reveal(){
+  const l=L[i]; st.stage='done';
+  prog[i]=st.wrong===0?2:1; save(); header(); settle();
+  const sameWorld=i+1<L.length&&L[i+1].w===l.w;
+  document.querySelectorAll('#code .miss,#code .sel').forEach(c=>c.classList.remove('miss','sel'));
+  $('#msg').hidden=true;
+  $('#after').innerHTML=`<section class="rv">
+    <p class="verdict${l.ok?' ok':''}">${l.ok?'Faithful.':'Misformalized.'}</p>
+    ${l.ok?'':`<h2>${esc(l.lesson)}</h2>`}
+    <p>${esc(l.why)}</p>
+    <dl>${l.wit==='None.'?'':`<dt>Witness</dt><dd>${esc(l.wit)}</dd>`}<dt>Lean</dt><dd>${esc(l.lean)}</dd></dl>
+    ${l.fix?`<div class="codewrap"><pre>${render(l.fix,'fs',false)}</pre></div>`:''}
+    <button class="btn primary next" id="${sameWorld?'next':'tomap'}">${sameWorld?'Next level':'Back to map'}</button></section>`;
+  ($('#next')||$('#tomap')).focus({preventScroll:true});
+}
+
+document.addEventListener('click',e=>{
+  const t=e.target;
+  if(t.closest('#brand')||t.id==='tomap'){showMap();return}
+  const d=t.closest('.dot'); if(d){level(+d.dataset.j);return}
+  const wn=t.closest('.wname'); if(wn&&!wn.disabled){const lv=inW(wn.dataset.w);level(lv.find(j=>!prog[j])??lv[0]);return}
+  if(t.id==='next'){level(i+1);return}
+  const ch=t.closest('.chip'); if(ch){probe(+ch.dataset.p);return}
+  if(st.stage==='locate'){
+    const c=t.closest('#code .c');
+    if(c&&!c.classList.contains('miss')){
+      document.querySelectorAll('#code .sel').forEach(b=>b.classList.remove('sel'));
+      c.classList.add('sel'); st.sel=c; $('#mark').disabled=false; return;
+    }
+    if(t.id==='hintb'){$('#hint').hidden=!$('#hint').hidden;return}
+    if(t.id==='mark'&&st.sel){
+      if(st.sel.closest('.bs')){located();return}
+      const l=L[i], tx=st.sel.textContent;
+      st.wrong++; st.sel.classList.remove('sel'); st.sel.classList.add('miss'); st.sel=null; $('#mark').disabled=true;
+      say(l.ok?'That part matches the English.':(l.miss&&l.miss[tx])||'That part matches the English.',true);return;
+    }
+    if(t.id==='cert'){
+      if(L[i].ok){reveal();return}
+      st.wrong++; say('Not quite.',true);return;
+    }
+  }
+  if(st.stage==='diag'){
+    const o=t.closest('.opt'); if(!o||o.disabled) return;
+    if(+o.dataset.k===0){reveal();return}
+    st.wrong++; o.disabled=true; o.classList.add('wrong');
+    const m=$('#dmsg'); m.textContent='Not that one. Which chip made them disagree?'; m.className='msg bad';
+  }
+});
+document.addEventListener('keydown',e=>{
+  if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('c')){e.preventDefault();e.target.click()}
+});
+showMap();
+}
+</script>
+</body>
+</html>
